@@ -1,0 +1,74 @@
+# make_videos.py の設定ファイル
+# 省略した項目は既定値（mvgen/config.py の DEFAULTS）が使われる。
+# 優先順位: コマンドライン > clips.<id> > generation > 既定値
+
+server: http://127.0.0.1:8188   # ComfyUI の URL
+movies: movies.yaml             # 入力の一覧表
+image_dir: output               # 開始画像・参照画像のあるディレクトリ
+out_dir: videos                 # 動画・記録・レビューページの保存先
+
+# 生成の共通設定
+generation:
+  mode: i2v           # i2v（開始フレーム指定）/ r2v（参照画像）
+  megapixels: 0.2     # 16:9 で 0.2 = 608x352。確認後に手動でアップスケールする前提
+  steps: null         # null ならモードの既定（i2v: turbo 8 / 通常 20、r2v: テンプレートの値）
+  turbo: true         # i2v で turbo LoRA を使う
+  seed_base: 1000     # 自動 seed = seed_base + id の番号（01 → 1001、E-1 → 1101）
+  takes: 1            # 1クリップあたりのテイク数。テイク k の seed は take1 + (k-1)*1000
+
+# ComfyUI 側の設定
+comfy:
+  upload_subfolder: hope        # 画像のアップロード先（ComfyUI の input/hope/）
+  filename_prefix: video/hope   # ComfyUI の output/ 側の保存先
+  timeout_minutes: 180          # 1本あたりの待ち時間の上限
+  poll_seconds: 5
+
+# i2v で使うモデル（公式テンプレート video_minimax_h3_i2v 準拠）
+i2v:
+  unet_name: minimax_h3_fl2va_pruned_int8_convrot.safetensors
+  clip_name: qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
+  video_vae: minimax_h3_video_vae_int8_convrot.safetensors
+  audio_vae: minimax_h3_audio_vae_fp32.safetensors
+  turbo_lora: minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors
+  turbo_steps: 8
+  normal_steps: 20
+  sampler: res_multistep
+  scheduler: simple
+
+# r2v で使うワークフロー（API 形式）
+r2v:
+  template: minimaxh3_r2v.json
+
+# 確認用ページ（out_dir 基準）
+review:
+  auto: true                # generate の後に review.html を自動更新する
+  file: review.html
+  selected: selected.yaml   # 採用テイクの一覧
+  port: 8765                # review --serve のポート
+
+# ラフ版（out_dir 基準）
+roughcut:
+  output: roughcut.mp4
+  audio: null               # 歌の音源（例: song.wav）。null なら生成された音声をつなぐ
+
+# 生成完了の通知
+notify:
+  toast: true               # Windows のトースト通知
+  webhook: null             # Discord / Slack 互換の Webhook URL（使う場合のみ）
+
+# クリップごとの上書き（id はクォートする）
+# 使えるキー: mode, ref-images, prompt, prompt_file, seed, steps, megapixels, turbo, takes
+clips:
+  # 手のカットは崩れやすいので多めに引く（movies.md 手順5）
+  "04": {takes: 3}
+  "16": {takes: 3}
+  "20": {takes: 3}
+
+  # 例: 顔が崩れたカットを Ref2VA で撮り直す（movies.md §0）
+  # "10":
+  #   mode: r2v
+  #   ref-images:
+  #     - hope_10_a_tear.png
+  #     - hope_ref_02_character-sheet.png
+  #     - hope_ref_01_location-path-dawn.png
+  #   prompt_file: prompts/10_ref2va.txt   # Ref2VA の6節形式のプロンプト
