@@ -32,8 +32,7 @@ def make_project(root: Path, config: dict | None = None, movies=None):
             if m.get(k):
                 (root / "output" / m[k]).write_bytes(b"PNG-" + m[k].encode())
     (root / "movies.yaml").write_text(yaml.safe_dump(movies, allow_unicode=True), encoding="utf-8")
-    shutil.copy(REPO / "minimaxh3_r2v.json", root / "minimaxh3_r2v.json")
-    cfg_data = {"notify": {"toast": False}, **(config or {})}
+    cfg_data = {"image_dir": "output", "notify": {"toast": False}, **(config or {})}
     (root / "config.yaml").write_text(yaml.safe_dump(cfg_data, allow_unicode=True), encoding="utf-8")
     cfg = Config.load(root / "config.yaml")
     return cfg, load_movies(cfg.movies_path)

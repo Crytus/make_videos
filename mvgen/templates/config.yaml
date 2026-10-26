@@ -1,0 +1,69 @@
+# make_videos の設定ファイル（make_videos init で作成）
+# 省略した項目は既定値が使われる。パスはこのファイルのあるディレクトリ基準。
+# 優先順位: コマンドライン > clips.<id> > generation > 既定値
+
+server: http://127.0.0.1:8188   # ComfyUI の URL
+movies: movies.yaml             # クリップの一覧表
+image_dir: images               # 開始画像・参照画像のあるディレクトリ
+out_dir: videos                 # 動画・記録・レビューページの保存先
+
+# 生成の共通設定
+generation:
+  mode: i2v           # i2v（開始フレーム指定）/ r2v（参照画像）
+  megapixels: 0.2     # 16:9 で 0.2 = 608x352。確認後に手動でアップスケールする前提
+  steps: null         # null ならモードの既定（i2v: turbo 8 / 通常 20、r2v: テンプレートの値）
+  turbo: true         # i2v で turbo LoRA を使う
+  seed_base: 1000     # 自動 seed = seed_base + id の番号（01 → 1001、E-1 → 1101）
+  takes: 1            # 1クリップあたりのテイク数。テイク k の seed は take1 + (k-1)*1000
+
+# ComfyUI 側の設定
+comfy:
+  upload_subfolder: make_videos        # 画像のアップロード先（ComfyUI の input/ 配下）
+  filename_prefix: video/make_videos   # ComfyUI の output/ 側の保存先
+  timeout_minutes: 180                 # 1本あたりの待ち時間の上限
+  poll_seconds: 5
+
+# i2v で使うモデル（ComfyUI 公式テンプレート video_minimax_h3_i2v 準拠）
+i2v:
+  unet_name: minimax_h3_fl2va_pruned_int8_convrot.safetensors
+  clip_name: qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
+  video_vae: minimax_h3_video_vae_int8_convrot.safetensors
+  audio_vae: minimax_h3_audio_vae_fp32.safetensors
+  turbo_lora: minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors
+  turbo_steps: 8
+  normal_steps: 20
+  sampler: res_multistep
+  scheduler: simple
+
+# r2v で使うワークフロー（API 形式）。null なら同梱のテンプレートを使う
+r2v:
+  template: null
+
+# 確認用ページ（out_dir 基準）
+review:
+  auto: true                # generate の後に review.html を自動更新する
+  file: review.html
+  selected: selected.yaml   # 採用テイクの一覧
+  port: 8765                # review --serve のポート
+
+# ラフ版（out_dir 基準）
+roughcut:
+  output: roughcut.mp4
+  audio: null               # 楽曲の音源（例: song.wav）。null なら生成された音声をつなぐ
+
+# 生成完了の通知
+notify:
+  toast: true               # Windows のトースト通知
+  webhook: null             # Discord / Slack 互換の Webhook URL（使う場合のみ）
+
+# クリップごとの上書き（id はクォートする）
+# 使えるキー: mode, ref-images, prompt, prompt_file, seed, steps, megapixels, turbo, takes
+clips: {}
+  # 例: 崩れやすいカットを多めに引く
+  # "04": {takes: 3}
+  #
+  # 例: 1クリップだけ r2v（参照画像）で生成する
+  # "10":
+  #   mode: r2v
+  #   ref-images: [clip_10_start.png, character_sheet.png, location.png]
+  #   prompt_file: prompts/10_r2v.txt

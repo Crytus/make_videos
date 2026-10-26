@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "make-videos"
+version = "0.1.0"
+description = "movies.yaml のクリップ一覧から、ローカルの ComfyUI（MiniMax H3）で動画を一括生成するツール"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["PyYAML>=6"]
+
+[project.scripts]
+make_videos = "mvgen.cli:main"
+
+[tool.setuptools]
+packages = ["mvgen"]
+
+[tool.setuptools.package-data]
+mvgen = ["templates/*"]

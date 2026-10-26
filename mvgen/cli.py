@@ -1,9 +1,12 @@
-"""コマンドライン。
+"""コマンドライン（make_videos コマンド / python make_videos.py）。
 
-  python make_videos.py [generate] [オプション]   動画を生成（既定のコマンド）
-  python make_videos.py status                     生成状況を一覧表示
-  python make_videos.py review [--serve]           確認用の review.html を作る
-  python make_videos.py roughcut                   全クリップをつないだラフ版を作る
+  make_videos init                    カレントディレクトリに config.yaml の雛形を作る
+  make_videos [generate] [オプション]   動画を生成（既定のコマンド）
+  make_videos status                  生成状況を一覧表示
+  make_videos review [--serve]        確認用の review.html を作る
+  make_videos roughcut                全クリップをつないだラフ版を作る
+
+設定ファイルは既定でカレントディレクトリの config.yaml（--config で変更）。
 """
 
 from __future__ import annotations
@@ -17,7 +20,7 @@ from pathlib import Path
 
 from . import notify as notifier
 from .comfy import ComfyClient, find_video_outputs
-from .config import MODES, Config
+from .config import CONFIG_TEMPLATE, MODES, Config
 from .metadata import (MISSING, OK, STALE, UNKNOWN, effective_steps, generation_params, job_state,
                        video_state, write_meta)
 from .movies import frame_length, load_movies
@@ -28,8 +31,8 @@ from .roughcut import build_roughcut, format_cues
 from .selection import load_selection
 from .workflow import build_i2v_workflow, build_r2v_workflow
 
-COMMANDS = ("generate", "status", "review", "roughcut")
-DEFAULT_CONFIG = Path(__file__).resolve().parent.parent / "config.yaml"
+COMMANDS = ("init", "generate", "status", "review", "roughcut")
+CONFIG_NAME = "config.yaml"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -37,9 +40,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # コマンド省略時は generate（従来の使い方との互換）
     command = argv.pop(0) if argv and argv[0] in COMMANDS else "generate"
 
-    p = argparse.ArgumentParser(prog=f"make_videos.py {command}",
+    p = argparse.ArgumentParser(prog=f"make_videos {command}",
                                 description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--config", type=Path, default=DEFAULT_CONFIG, help="設定ファイル（既定: config.yaml）")
+    p.add_argument("--config", type=Path, default=Path.cwd() / CONFIG_NAME,
+                   help="設定ファイル（既定: カレントディレクトリの config.yaml）")
+    if command == "init":
+        p.add_argument("--force", action="store_true", help="既存の設定ファイルを上書きする")
     if command in ("generate", "status"):
         p.add_argument("--ids", nargs="*", help="対象クリップの id（省略時は全件）")
     if command == "generate":
@@ -281,6 +287,18 @@ def cmd_roughcut(args, cfg: Config, movies: list[dict]) -> int:
     return 0
 
 
+def cmd_init(args) -> int:
+    """設定ファイルの雛形を書き出す。"""
+    dest = args.config
+    if dest.exists() and not args.force:
+        print(f"{dest} は既にあります（上書きするなら --force）", file=sys.stderr)
+        return 2
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(CONFIG_TEMPLATE.read_text(encoding="utf-8"), encoding="utf-8")
+    print(f"{dest} を作成しました。movies / image_dir / out_dir などを編集してください。")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     if not sys.stdout.isatty() and not os.environ.get("PYTHONIOENCODING"):
         # パイプ出力（Git Bash 等）でも日本語が化けないよう UTF-8 にする
@@ -290,6 +308,11 @@ def main(argv: list[str] | None = None) -> int:
         except Exception:
             pass
     args = parse_args(argv)
+    if args.command == "init":
+        return cmd_init(args)
+    if not args.config.is_file():
+        print(f"警告: {args.config} が無いため既定値で動作します（make_videos init で雛形を作れます）",
+              file=sys.stderr)
     try:
         cfg = Config.load(args.config)
         movies = load_movies(cfg.movies_path)

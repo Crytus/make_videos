@@ -36,7 +36,7 @@ def frame_length(seconds: float) -> int:
 
 
 def output_stem(movie: dict) -> str:
-    """出力ファイル名の幹。開始画像名に合わせる（例: hope_01_path_before_dawn）。"""
+    """出力ファイル名の幹。開始画像名に合わせる（例: clip_01_opening.png → clip_01_opening）。"""
     return Path(movie["ref-image1"]).stem
 
 

@@ -15,14 +15,19 @@ from pathlib import Path
 
 import yaml
 
+# パッケージに同梱したテンプレート
+TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
+BUNDLED_R2V_TEMPLATE = TEMPLATE_DIR / "minimaxh3_r2v.json"
+CONFIG_TEMPLATE = TEMPLATE_DIR / "config.yaml"
+
 DEFAULTS: dict = {
     "server": "http://127.0.0.1:8188",
     "movies": "movies.yaml",
-    "image_dir": "output",
+    "image_dir": "images",
     "out_dir": "videos",
     "comfy": {
-        "upload_subfolder": "hope",       # 画像のアップロード先（ComfyUI の input/ 配下）
-        "filename_prefix": "video/hope",  # ComfyUI 側の保存先（output/ 配下）
+        "upload_subfolder": "make_videos",       # 画像のアップロード先（ComfyUI の input/ 配下）
+        "filename_prefix": "video/make_videos",  # ComfyUI 側の保存先（output/ 配下）
         "timeout_minutes": 180,
         "poll_seconds": 5,
     },
@@ -46,7 +51,7 @@ DEFAULTS: dict = {
         "scheduler": "simple",
     },
     "r2v": {
-        "template": "minimaxh3_r2v.json",
+        "template": None,         # None なら同梱のテンプレート（mvgen/templates）
     },
     "review": {
         "auto": True,             # generate の後に review.html を自動更新する
@@ -56,7 +61,7 @@ DEFAULTS: dict = {
     },
     "roughcut": {
         "output": "roughcut.mp4",
-        "audio": None,            # 歌の音源。None なら生成された音声をつなぐ
+        "audio": None,            # 楽曲の音源。None なら生成された音声をつなぐ
     },
     "notify": {
         "toast": True,            # Windows のトースト通知
@@ -162,7 +167,7 @@ class Config:
 
     @property
     def r2v_template(self) -> Path:
-        return self.path(self.data["r2v"]["template"])
+        return self.path(self.data["r2v"]["template"]) or BUNDLED_R2V_TEMPLATE
 
     @property
     def review_path(self) -> Path:

@@ -2,6 +2,7 @@
 
 import io
 import json
+import os
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -9,6 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 from mvgen import cli
+from mvgen.config import BUNDLED_R2V_TEMPLATE, Config
 from mvgen.plan import resolve_clip
 from tests.helpers import make_project, write_fake_meta
 
@@ -141,7 +143,7 @@ class TestGenerate(GenerateTestCase):
         _, client = self.run_cli("--ids", "02", "--no-review")
         wf = client.queued[0]
         self.assertEqual(wf["136"]["class_type"], "MiniMaxH3ReferenceToVideo")
-        self.assertEqual(wf["188"]["inputs"]["image"], "hope/s_01_a.png")
+        self.assertEqual(wf["188"]["inputs"]["image"], "make_videos/s_01_a.png")
         self.assertNotIn("189", wf)
 
     def test_failure_continues_and_returns_1(self):
@@ -185,6 +187,39 @@ class TestGenerate(GenerateTestCase):
         with mock.patch("mvgen.review.media.ffmpeg_available", return_value=False):
             self.run_cli("--ids", "01")
         self.assertTrue(cfg.review_path.is_file())
+
+
+class TestInitAndConfig(GenerateTestCase):
+    def test_init_creates_template(self):
+        dest = self.root / "proj" / "config.yaml"
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(cli.main(["init", "--config", str(dest)]), 0)
+        cfg = Config.load(dest)
+        self.assertEqual(cfg.gen["megapixels"], 0.2)
+        self.assertEqual(cfg.image_dir, dest.parent / "images")
+        self.assertEqual(cfg.r2v_template, BUNDLED_R2V_TEMPLATE)
+        self.assertTrue(cfg.r2v_template.is_file())
+        # 既存ファイルは上書きしない
+        with redirect_stderr(io.StringIO()):
+            self.assertEqual(cli.main(["init", "--config", str(dest)]), 2)
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(cli.main(["init", "--config", str(dest), "--force"]), 0)
+
+    def test_default_config_is_in_current_directory(self):
+        self.project()
+        cwd = os.getcwd()
+        os.chdir(self.root)
+        try:
+            args = cli.parse_args(["status"])
+        finally:
+            os.chdir(cwd)
+        self.assertEqual(args.config.resolve(), (self.root / "config.yaml").resolve())
+        self.assertEqual(args.command, "status")
+
+    def test_r2v_uses_bundled_template_by_default(self):
+        self.project({"clips": {"01": {"mode": "r2v"}}})
+        _, client = self.run_cli("--ids", "01", "--no-review")
+        self.assertEqual(client.queued[0]["136"]["class_type"], "MiniMaxH3ReferenceToVideo")
 
 
 class TestStatus(GenerateTestCase):

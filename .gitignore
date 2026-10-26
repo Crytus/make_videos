@@ -11,3 +11,8 @@ __pycache__/
 # 書き込み途中の一時ファイル
 *.part
 *.part.*
+
+# パッケージのビルド成果物
+build/
+dist/
+*.egg-info/

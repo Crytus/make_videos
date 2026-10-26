@@ -3,10 +3,9 @@
 import json
 import unittest
 
-from mvgen.config import DEFAULTS
+from mvgen.config import BUNDLED_R2V_TEMPLATE, DEFAULTS
 from mvgen.movies import frame_length
 from mvgen.workflow import build_i2v_workflow, build_r2v_workflow
-from tests.helpers import REPO
 
 
 def assert_links_valid(tc, wf):
@@ -45,7 +44,7 @@ class TestI2V(unittest.TestCase):
 class TestR2V(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.template = json.loads((REPO / "minimaxh3_r2v.json").read_text(encoding="utf-8"))
+        cls.template = json.loads(BUNDLED_R2V_TEMPLATE.read_text(encoding="utf-8"))
 
     def build(self, images, **kw):
         args = dict(prompt="P", duration=6, image_names=images, seed=7, megapixels=0.2,

@@ -1,8 +1,8 @@
 """採用テイクの一覧（selected.yaml）の読み書き。
 
 形式: {クリップ id: 動画ファイル名}
-  "01": hope_01_path_before_dawn.mp4
-  "04": hope_04_light_in_hands_t2.mp4
+  "01": clip_01_opening.mp4
+  "04": clip_04_hands_t2.mp4
 """
 
 from __future__ import annotations
