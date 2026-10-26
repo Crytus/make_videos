@@ -1,6 +1,6 @@
 """クリップごとの設定の解決と、生成ジョブ（クリップ × テイク）の組み立て。
 
-設定の優先順位: コマンドライン > config.yaml の clips.<id> > config.yaml の generation > 既定値
+設定の優先順位: コマンドライン > config_video.yaml の clips.<id> > config_video.yaml の generation > 既定値
 """
 
 from __future__ import annotations

@@ -1,8 +1,8 @@
-"""設定ファイル（config.yaml）の読み込み。
+"""設定ファイル（config_video.yaml）の読み込み。
 
 パスの基準:
   movies / image_dir / out_dir / r2v.template / roughcut.audio / clips.*.prompt_file
-      → config.yaml のあるディレクトリ基準
+      → config_video.yaml のあるディレクトリ基準
   review.file / review.selected / roughcut.output
       → out_dir 基準
 """
@@ -18,7 +18,7 @@ import yaml
 # パッケージに同梱したテンプレート
 TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
 BUNDLED_R2V_TEMPLATE = TEMPLATE_DIR / "minimaxh3_r2v.json"
-CONFIG_TEMPLATE = TEMPLATE_DIR / "config.yaml"
+CONFIG_TEMPLATE = TEMPLATE_DIR / "config_video.yaml"
 
 DEFAULTS: dict = {
     "server": "http://127.0.0.1:8188",
@@ -104,7 +104,7 @@ class Config:
 
     @classmethod
     def load(cls, path: Path | None) -> "Config":
-        """config.yaml を読み込む。ファイルが無ければ既定値で動く。"""
+        """config_video.yaml を読み込む。ファイルが無ければ既定値で動く。"""
         if path is not None and path.is_file():
             with open(path, encoding="utf-8") as f:
                 user = yaml.safe_load(f) or {}

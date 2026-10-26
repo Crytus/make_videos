@@ -17,11 +17,11 @@ MiniMax H3（ローカル ComfyUI）で MV のクリップを一括生成する�
 
 ## ツール（make_videos / mvgen/）
 
-利用者向けの使い方は `README.md`。オプションや設定を変えたら README と `mvgen/templates/config.yaml`（`make_videos init` の雛形）のコメントも更新する。依存は PyYAML と ffmpeg/ffprobe（HTTP は標準ライブラリ）。
+利用者向けの使い方は `README.md`。オプションや設定を変えたら README と `mvgen/templates/config_video.yaml`（`make_videos init` の雛形）のコメントも更新する。依存は PyYAML と ffmpeg/ffprobe（HTTP は標準ライブラリ）。
 
 ```
 pip install -e .                                 # make_videos コマンドを入れる（インストールせず python make_videos.py でも同じ）
-make_videos init                                 # カレントディレクトリに config.yaml の雛形
+make_videos init                                 # カレントディレクトリに config_video.yaml の雛形
 make_videos [generate] --dry-run                 # 生成対象の確認（API 形式ワークフローを videos/workflows/ に書き出す）
 make_videos status                               # 生成状況（○最新 △設定変更あり ?記録なし -未生成）
 make_videos review --serve                       # review.html を開き、採用テイクを videos/selected.yaml に保存
@@ -32,8 +32,8 @@ python -m unittest tests.test_generate.TestGenerate.test_takes   # 1件だけ
 
 ### 構成とデータの流れ
 
-- 設定ファイルは既定で**カレントディレクトリ**の `config.yaml`（`--config` で変更）。相対パスは config.yaml のディレクトリ基準。`mvgen/config.py` の `DEFAULTS` とマージし、優先順位は **CLI > `clips.<id>` > `generation` > DEFAULTS**。クリップ単位の解決は `plan.resolve_clip()` が一手に担う。
-- リポジトリ直下の `config.yaml` はサンプル用（`image_dir: output`、`upload_subfolder: hope` など）。汎用の既定値は `DEFAULTS` と `mvgen/templates/config.yaml` 側。
+- 設定ファイルは既定で**カレントディレクトリ**の `config_video.yaml`（`--config` で変更）。相対パスは config_video.yaml のディレクトリ基準。`mvgen/config.py` の `DEFAULTS` とマージし、優先順位は **CLI > `clips.<id>` > `generation` > DEFAULTS**。クリップ単位の解決は `plan.resolve_clip()` が一手に担う。
+- リポジトリ直下の `config_video.yaml` はサンプル用（`image_dir: output`、`upload_subfolder: hope` など）。汎用の既定値は `DEFAULTS` と `mvgen/templates/config_video.yaml` 側。
 - `plan.build_jobs()` がクリップ × テイクのジョブを「テイク番号 → クリップ順」で作る。保存先は take1 = `<開始画像名>.mp4`、take k = `<開始画像名>_t<k>.mp4`、seed は take1 + (k-1)*1000。
 - 生成後、動画と同名の `.json` に `metadata.generation_params()`（プロンプト・尺・seed・解像度・ステップ数・画像の sha256・モデル）を記録する。現在の設定と比べて差があれば STALE（`--stale` で再生成）。**見た目に影響する設定を追加したら `generation_params()` にも入れる**こと。記録の無い動画は UNKNOWN で、自動では作り直さない。
 - 生成済み（空でない mp4）はスキップ。ダウンロードや記録は `.part` に書いてから置き換える（中断で壊れたファイルを生成済みと誤認しないため）。

@@ -1,12 +1,12 @@
 """コマンドライン（make_videos コマンド / python make_videos.py）。
 
-  make_videos init                    カレントディレクトリに config.yaml の雛形を作る
+  make_videos init                    カレントディレクトリに config_video.yaml の雛形を作る
   make_videos [generate] [オプション]   動画を生成（既定のコマンド）
   make_videos status                  生成状況を一覧表示
   make_videos review [--serve]        確認用の review.html を作る
   make_videos roughcut                全クリップをつないだラフ版を作る
 
-設定ファイルは既定でカレントディレクトリの config.yaml（--config で変更）。
+設定ファイルは既定でカレントディレクトリの config_video.yaml（--config で変更）。
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ from .selection import load_selection
 from .workflow import build_i2v_workflow, build_r2v_workflow
 
 COMMANDS = ("init", "generate", "status", "review", "roughcut")
-CONFIG_NAME = "config.yaml"
+CONFIG_NAME = "config_video.yaml"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -43,7 +43,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(prog=f"make_videos {command}",
                                 description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--config", type=Path, default=Path.cwd() / CONFIG_NAME,
-                   help="設定ファイル（既定: カレントディレクトリの config.yaml）")
+                   help="設定ファイル（既定: カレントディレクトリの config_video.yaml）")
     if command == "init":
         p.add_argument("--force", action="store_true", help="既存の設定ファイルを上書きする")
     if command in ("generate", "status"):

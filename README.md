@@ -34,7 +34,7 @@
 
 3. ComfyUI を起動します（既定 `http://127.0.0.1:8188`）。ブラウザでテンプレート「MiniMax H3: Image to Video」が動けば準備完了です。
 
-別の量子化版など、ファイル名が違うモデルを使う場合は `config.yaml` の `i2v:` で指定します。r2v は `r2v.template` に自分のワークフローを指定します。
+別の量子化版など、ファイル名が違うモデルを使う場合は `config_video.yaml` の `i2v:` で指定します。r2v は `r2v.template` に自分のワークフローを指定します。
 
 ### 2. ffmpeg
 
@@ -109,7 +109,7 @@ cd my_mv
 make_videos init
 ```
 
-`config.yaml` を開き、少なくとも次を確認します。
+`config_video.yaml` を開き、少なくとも次を確認します。
 
 | 項目 | 内容 |
 |---|---|
@@ -122,10 +122,10 @@ make_videos init
 
 ```
 my_mv/
-├─ config.yaml     # make_videos init で作成
-├─ movies.yaml     # クリップの一覧表（スキルで作成、または手で書く）
-├─ images/         # 各クリップの開始画像
-└─ videos/         # 生成結果（自動で作成）
+├─ config_video.yaml  # make_videos init で作成
+├─ movies.yaml        # クリップの一覧表（スキルで作成、または手で書く）
+├─ images/            # 各クリップの開始画像
+└─ videos/            # 生成結果（自動で作成）
 ```
 
 準備ができたら生成します。
@@ -135,7 +135,7 @@ make_videos --dry-run    # まず何が生成されるかを確認（ComfyUI に
 make_videos              # 生成
 ```
 
-`make_videos` はカレントディレクトリの `config.yaml` を読みます。別の場所の設定を使うときは `--config path/to/config.yaml` を付けます。
+`make_videos` はカレントディレクトリの `config_video.yaml` を読みます。別の場所の設定を使うときは `--config path/to/config_video.yaml` を付けます。
 
 ## movies.yaml の書き方
 
@@ -165,7 +165,7 @@ make_videos              # 生成
 ## コマンド一覧
 
 ```
-make_videos init             # config.yaml の雛形を作る
+make_videos init             # config_video.yaml の雛形を作る
 make_videos                  # 動画を生成（generate は省略可）
 make_videos status           # 生成状況の一覧
 make_videos review --serve   # 確認ページを開き、採用テイクを選ぶ
@@ -187,7 +187,7 @@ make_videos
 - 複数テイクのときは、まず全クリップの take1 を作り、次に take2 … の順で進みます。途中で止めても、全体を一通り確認できます。
 - 1本ごとに残り時間の見積もりを表示します（過去の記録と今回の実績から計算）。
 - 1本が失敗しても止まらず次へ進みます。最後に失敗したファイルが表示されるので、同じコマンドを再実行してください。
-- 動画が1本できるごとに `review.html` を自動で更新します（`config.yaml` の `review.auto` で `end`＝最後に1回 / `off`＝しない に変更可）。
+- 動画が1本できるごとに `review.html` を自動で更新します（`config_video.yaml` の `review.auto` で `end`＝最後に1回 / `off`＝しない に変更可）。
 - 終了すると Windows のトースト通知（設定すれば Webhook も）でお知らせします。
 
 ### よく使う例
@@ -228,9 +228,9 @@ make_videos --dry-run              # 何が生成されるか確認（ワーク�
 | `--dry-run` | キュー投入せず、ワークフロー JSON を `videos/workflows/` に書き出す |
 | `--no-review` / `--no-notify` | レビューページの自動更新・終了時の通知をしない |
 | `--server` | ComfyUI の URL |
-| `--config` | 設定ファイル（既定はカレントディレクトリの `config.yaml`） |
+| `--config` | 設定ファイル（既定はカレントディレクトリの `config_video.yaml`） |
 
-コマンドラインで指定した値は、`config.yaml` の値より優先されます。
+コマンドラインで指定した値は、`config_video.yaml` の値より優先されます。
 
 ## 2. 生成状況の確認（status）
 
@@ -274,9 +274,9 @@ make_videos roughcut --audio song.wav   # 楽曲を重ねる
 
 - 各クリップに使うテイク: `selected.yaml` の採用テイク → take1 → 残っているテイク
 - 未生成のクリップは黒画面で埋めます
-- 音声は既定では生成された音声をつなぎます。`--audio`（または `config.yaml` の `roughcut.audio`）で楽曲の音源に差し替えられます
+- 音声は既定では生成された音声をつなぎます。`--audio`（または `config_video.yaml` の `roughcut.audio`）で楽曲の音源に差し替えられます
 
-## 設定ファイル（config.yaml）
+## 設定ファイル（config_video.yaml）
 
 共通の設定と、クリップごとの上書きを書きます。省略した項目は既定値になります。優先順位は **コマンドライン > `clips.<id>` > `generation` > 既定値** です。全項目と説明は `make_videos init` で作られる雛形のコメントを参照してください。
 
@@ -310,7 +310,7 @@ clips:
 ## 生成方式
 
 - **i2v（既定）**: `ref-image1` を動画の1フレーム目にします。ComfyUI 公式テンプレート `video_minimax_h3_i2v` と同じ構成です。I2VA 形式のプロンプト（1行目が `For the target video, at 0.00 seconds …`）を使います。
-- **r2v**: 参照画像（最大3枚）を渡して生成します。ワークフローは同梱のテンプレート（`mvgen/templates/minimaxh3_r2v.json`）を使います。自分のワークフローを使う場合は `config.yaml` の `r2v.template` に API 形式で書き出した JSON を指定します（ノード ID は同梱テンプレートと同じである必要があります）。1フレーム目が開始画像と一致するとは限りません。
+- **r2v**: 参照画像（最大3枚）を渡して生成します。ワークフローは同梱のテンプレート（`mvgen/templates/minimaxh3_r2v.json`）を使います。自分のワークフローを使う場合は `config_video.yaml` の `r2v.template` に API 形式で書き出した JSON を指定します（ノード ID は同梱テンプレートと同じである必要があります）。1フレーム目が開始画像と一致するとは限りません。
 
 ## 動画の長さ
 
@@ -318,7 +318,7 @@ clips:
 
 ## サンプル
 
-リポジトリ直下の `movies.yaml` / `config.yaml` / `plan.md` / `movies.md` / `scenes.*` などは、サンプル楽曲1曲分の制作データです。開始画像（`output/`）はリポジトリに含めていないため、そのままでは生成できません。自分の作品では `make_videos init` から始めてください。
+リポジトリ直下の `movies.yaml` / `config_video.yaml` / `plan.md` / `movies.md` / `scenes.*` などは、サンプル楽曲1曲分の制作データです。開始画像（`output/`）はリポジトリに含めていないため、そのままでは生成できません。自分の作品では `make_videos init` から始めてください。
 
 ## テスト
 

@@ -24,7 +24,7 @@ MOVIES = [
 
 
 def make_project(root: Path, config: dict | None = None, movies=None):
-    """config.yaml・movies.yaml・画像・r2v テンプレートを持つ一時プロジェクトを作る。"""
+    """config_video.yaml・movies.yaml・画像・r2v テンプレートを持つ一時プロジェクトを作る。"""
     movies = movies or MOVIES
     (root / "output").mkdir()
     for m in movies:
@@ -33,8 +33,8 @@ def make_project(root: Path, config: dict | None = None, movies=None):
                 (root / "output" / m[k]).write_bytes(b"PNG-" + m[k].encode())
     (root / "movies.yaml").write_text(yaml.safe_dump(movies, allow_unicode=True), encoding="utf-8")
     cfg_data = {"image_dir": "output", "notify": {"toast": False}, **(config or {})}
-    (root / "config.yaml").write_text(yaml.safe_dump(cfg_data, allow_unicode=True), encoding="utf-8")
-    cfg = Config.load(root / "config.yaml")
+    (root / "config_video.yaml").write_text(yaml.safe_dump(cfg_data, allow_unicode=True), encoding="utf-8")
+    cfg = Config.load(root / "config_video.yaml")
     return cfg, load_movies(cfg.movies_path)
 
 

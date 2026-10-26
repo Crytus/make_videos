@@ -65,7 +65,7 @@ class GenerateTestCase(unittest.TestCase):
         out, err = io.StringIO(), io.StringIO()
         with mock.patch.object(cli, "ComfyClient", return_value=client), \
                 redirect_stdout(out), redirect_stderr(err):
-            code = cli.main([*argv, "--config", str(self.root / "config.yaml")])
+            code = cli.main([*argv, "--config", str(self.root / "config_video.yaml")])
         self.out, self.err = out.getvalue(), err.getvalue()
         return code, client
 
@@ -218,7 +218,7 @@ class TestGenerate(GenerateTestCase):
 
 class TestInitAndConfig(GenerateTestCase):
     def test_init_creates_template(self):
-        dest = self.root / "proj" / "config.yaml"
+        dest = self.root / "proj" / "config_video.yaml"
         with redirect_stdout(io.StringIO()):
             self.assertEqual(cli.main(["init", "--config", str(dest)]), 0)
         cfg = Config.load(dest)
@@ -240,7 +240,7 @@ class TestInitAndConfig(GenerateTestCase):
             args = cli.parse_args(["status"])
         finally:
             os.chdir(cwd)
-        self.assertEqual(args.config.resolve(), (self.root / "config.yaml").resolve())
+        self.assertEqual(args.config.resolve(), (self.root / "config_video.yaml").resolve())
         self.assertEqual(args.command, "status")
 
     def test_r2v_uses_bundled_template_by_default(self):

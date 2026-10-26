@@ -12,7 +12,7 @@ from tests.helpers import REPO, make_project
 
 class TestConfig(unittest.TestCase):
     def test_repo_config_loads(self):
-        cfg = Config.load(REPO / "config.yaml")
+        cfg = Config.load(REPO / "config_video.yaml")
         self.assertEqual(cfg.gen["megapixels"], 0.2)
         self.assertEqual(cfg.gen["mode"], "i2v")
         self.assertEqual(cfg.out_dir, REPO / "videos")

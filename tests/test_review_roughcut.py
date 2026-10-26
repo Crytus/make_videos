@@ -120,7 +120,7 @@ class TestReviewServer(ProjectTestCase):
         self.assertEqual(load_selection(self.cfg.selected_path), {"01": "s_01_a_t2.mp4"})
 
     def test_rejects_invalid(self):
-        for bad in ({"01": "../config.yaml"}, {"01": "nothing.mp4"}, {"99": "s_01_a_t2.mp4"}):
+        for bad in ({"01": "../config_video.yaml"}, {"01": "nothing.mp4"}, {"99": "s_01_a_t2.mp4"}):
             with self.assertRaises(urllib.error.HTTPError) as cm:
                 self.post(bad)
             self.assertEqual(cm.exception.code, 400)

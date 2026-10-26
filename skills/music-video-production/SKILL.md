@@ -37,8 +37,8 @@ pipeline needs.
   <prefix>refs.csv  # same columns, one row per reference image  (e.g. ab_refs.csv)
   movies.md         # clip sheet for the video model: name / seconds / ref files / prompt
   movies.yaml       # batch-clip input for make_videos: id / name / duration / ref-image1..3 / prompt / lyrics
-  config.yaml       # make_videos settings (`make_videos init`)
-  <image_dir>/      # stills <prefix>01_*.png and references <prefix>ref_01_*.png (image_dir in config.yaml)
+  config_video.yaml # make_videos settings (`make_videos init`)
+  <image_dir>/      # stills <prefix>01_*.png and references <prefix>ref_01_*.png (image_dir in config_video.yaml)
 ```
 
 Use a short project prefix, including its trailing underscore, on every filename (`ab_` → `ab_01_opening.png`, `ab_ref_02_character-sheet.png`, `ab_refs.csv`). Never reuse a prefix from another song.
@@ -103,7 +103,7 @@ Format rules that are easy to get wrong:
 - `overall_soundscape` = ambience and physical sound only; put singing/dialogue/lyrics in `detailed_description` as `<d>[Japanese] …</d>` with `(S1)`-style speaker IDs. For this pipeline the song is added in the edit, so write **`non_diegetic_music: N/A`** and keep the frame free of text.
 - `detailed_description` for a generation task lands around 350–500 English words; match the described timeline length to the requested clip length (4–15 s).
 - Upload order in the MD stays the same as the label order: 1. the scene still (frame anchor), 2.–3. at most two supporting plates (identity, set layout). More plates get blended.
-- Keep one dialect per file. When a few clips switch to Ref2VA, keep their prompts in a separate file (e.g. `movies_ref2va.md`, or `prompt_file` entries under `clips:` in `config.yaml`) so `movies.md` stays pure I2VA.
+- Keep one dialect per file. When a few clips switch to Ref2VA, keep their prompts in a separate file (e.g. `movies_ref2va.md`, or `prompt_file` entries under `clips:` in `config_video.yaml`) so `movies.md` stays pure I2VA.
 
 ## Stage 7 — `movies.yaml` (batch input for make_videos)
 
@@ -137,7 +137,7 @@ every `prompt` equals its `movies.md` block verbatim, ids load as strings, unuse
 ### Handing off to make_videos
 
 ```
-make_videos init          # once: creates config.yaml (set movies / image_dir / out_dir)
+make_videos init          # once: creates config_video.yaml (set movies / image_dir / out_dir)
 make_videos --dry-run     # check what will be generated
 make_videos               # generate every clip
 make_videos review --serve
