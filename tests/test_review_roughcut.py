@@ -106,6 +106,14 @@ class TestReviewServer(ProjectTestCase):
         with urllib.request.urlopen(f"{self.base}/output/s_01_a.png", timeout=5) as r:
             self.assertEqual(r.status, 200)
 
+    def test_head_returns_last_modified_for_update_check(self):
+        req = urllib.request.Request(f"{self.base}/videos/review.html", method="HEAD")
+        with urllib.request.urlopen(req, timeout=5) as r:
+            self.assertTrue(r.headers.get("Last-Modified"))
+        html = self.cfg.review_path.read_text(encoding="utf-8")
+        self.assertIn('id="updated"', html)
+        self.assertIn("checkUpdate", html)
+
     def test_save_selection(self):
         with self.post({"01": "s_01_a_t2.mp4"}) as r:
             self.assertEqual(r.status, 200)

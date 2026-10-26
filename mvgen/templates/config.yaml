@@ -41,7 +41,7 @@ r2v:
 
 # 確認用ページ（out_dir 基準）
 review:
-  auto: true                # generate の後に review.html を自動更新する
+  auto: each                # review.html の自動更新: each=1本ごと / end=最後に1回 / off=しない
   file: review.html
   selected: selected.yaml   # 採用テイクの一覧
   port: 8765                # review --serve のポート

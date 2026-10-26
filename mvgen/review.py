@@ -75,6 +75,8 @@ body{font-family:"Segoe UI","Yu Gothic UI",sans-serif;margin:0;background:#f4f4f
 header{position:sticky;top:0;z-index:2;background:#1b2a4a;color:#fff;padding:10px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 header h1{font-size:18px;margin:0}
 header button{font-size:14px;padding:6px 14px;border:0;border-radius:4px;background:#e8b96a;color:#1b2a4a;font-weight:bold;cursor:pointer}
+#updated{display:none;background:#3a8a5c;color:#fff;padding:4px 10px;border-radius:4px;font-size:13px}
+#updated button{background:#fff;color:#3a8a5c;padding:2px 10px;margin-left:6px}
 header label{font-size:13px}
 #msg{font-size:13px}
 main{padding:12px 20px}
@@ -137,6 +139,17 @@ async function save(){
     msg('サーバー未起動のため selected.yaml をダウンロードしました。%(out_dir)s に置いてください');
   }
 }
+// --serve で開いている間、review.html が作り直されたら知らせる（未保存の選択を消さないよう自動では再読み込みしない）
+let pageStamp = null;
+async function checkUpdate(){
+  try {
+    const r = await fetch(location.pathname, {method:'HEAD', cache:'no-store'});
+    const stamp = r.headers.get('Last-Modified');
+    if (pageStamp === null) pageStamp = stamp;
+    else if (stamp && stamp !== pageStamp) document.getElementById('updated').style.display = 'inline-block';
+  } catch (e) { /* ファイルを直接開いている場合は何もしない */ }
+}
+if (location.protocol.startsWith('http')) { checkUpdate(); setInterval(checkUpdate, 15000); }
 document.addEventListener('change', e => { if (e.target.type === 'radio') refresh(); });
 document.getElementById('onlyOpen').addEventListener('change', e => document.body.classList.toggle('only-open', e.target.checked));
 refresh();
@@ -204,6 +217,7 @@ def render_review(cfg: Config, clips: list[ClipSettings]) -> str:
   <label><input type="checkbox" id="onlyOpen"> 未選択のみ表示</label>
   <button onclick="save()">選択を保存</button>
   <span id="msg"></span>
+  <span id="updated">新しいクリップがあります（未保存の選択は先に保存してください）<button onclick="location.reload()">再読み込み</button></span>
 </header>
 <main>{''.join(sections)}
 </main>

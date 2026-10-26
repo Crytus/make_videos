@@ -63,7 +63,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                        help="設定（プロンプト・画像など）が変わったテイクを再生成する")
         p.add_argument("--dry-run", action="store_true",
                        help="キュー投入せず、ワークフロー JSON を <out_dir>/workflows に書き出す")
-        p.add_argument("--no-review", action="store_true", help="終了後に review.html を更新しない")
+        p.add_argument("--no-review", action="store_true", help="review.html を自動更新しない")
         p.add_argument("--no-notify", action="store_true", help="終了時の通知をしない")
     if command == "review":
         p.add_argument("--serve", action="store_true",
@@ -111,10 +111,11 @@ def _all_clips(cfg: Config, movies: list[dict]) -> list[ClipSettings]:
     return [resolve_clip(m, cfg) for m in movies]
 
 
-def _update_review(cfg: Config, movies: list[dict]) -> None:
+def _update_review(cfg: Config, movies: list[dict], quiet: bool = False) -> None:
     try:
         path = build_review(cfg, _all_clips(cfg, movies))
-        print(f"レビューページを更新しました: {path}")
+        print("  レビューページを更新しました" if quiet else f"レビューページを更新しました: {path}",
+              flush=True)
     except Exception as e:
         print(f"レビューページの更新に失敗しました: {e}", file=sys.stderr)
 
@@ -194,6 +195,8 @@ def cmd_generate(args, cfg: Config, movies: list[dict]) -> int:
                        comfy_file=videos[0].get("filename"))
             eta.add(rate_key(params), elapsed, job.clip.duration)
             print(f"{label}: 完了 {job.dest.name}（{fmt_duration(elapsed)}）", flush=True)
+            if cfg.review_auto == "each" and not args.no_review:
+                _update_review(cfg, movies, quiet=True)
         except Exception as e:  # 1本の失敗で全体を止めない
             print(f"{label}: 失敗 - {e}", file=sys.stderr, flush=True)
             failures.append(job.dest.name)
@@ -207,7 +210,8 @@ def cmd_generate(args, cfg: Config, movies: list[dict]) -> int:
     print(summary)
     if failures:
         print("失敗: " + " ".join(failures), file=sys.stderr)
-    if cfg.data["review"]["auto"] and not args.no_review:
+    # 1本ごとに更新済みなら最後の更新は不要（失敗があっても review の内容は変わらない）
+    if cfg.review_auto == "end" and not args.no_review:
         _update_review(cfg, movies)
     if not args.no_notify:
         notifier.notify(cfg.notify, "動画生成が終わりました" if not failures else "動画生成が終わりました（失敗あり）",

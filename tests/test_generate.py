@@ -182,6 +182,33 @@ class TestGenerate(GenerateTestCase):
         hook.assert_called_once()
         self.assertIn("成功 1本", toast.call_args.args[1])
 
+    def test_review_updated_after_each_clip(self):
+        self.project()
+        with mock.patch.object(cli, "build_review") as br:
+            self.run_cli()
+        self.assertEqual(br.call_count, 3)  # 3本それぞれの完了後
+
+    def test_review_auto_end_and_off(self):
+        self.project({"review": {"auto": "end"}})
+        with mock.patch.object(cli, "build_review") as br:
+            self.run_cli()
+        self.assertEqual(br.call_count, 1)
+        with mock.patch.object(cli, "build_review") as br:
+            self.run_cli("--force", "--no-review")
+        self.assertEqual(br.call_count, 0)
+
+    def test_review_auto_legacy_bool(self):
+        self.assertEqual(self.project({"review": {"auto": True}}).review_auto, "each")
+        self.tmp.cleanup()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.assertEqual(self.project({"review": {"auto": False}}).review_auto, "off")
+        self.tmp.cleanup()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        with self.assertRaises(ValueError):
+            self.project({"review": {"auto": "always"}})
+
     def test_review_updated_after_generate(self):
         cfg = self.project()
         with mock.patch("mvgen.review.media.ffmpeg_available", return_value=False):

@@ -37,7 +37,7 @@ python -m unittest tests.test_generate.TestGenerate.test_takes   # 1件だけ
 - `plan.build_jobs()` がクリップ × テイクのジョブを「テイク番号 → クリップ順」で作る。保存先は take1 = `<開始画像名>.mp4`、take k = `<開始画像名>_t<k>.mp4`、seed は take1 + (k-1)*1000。
 - 生成後、動画と同名の `.json` に `metadata.generation_params()`（プロンプト・尺・seed・解像度・ステップ数・画像の sha256・モデル）を記録する。現在の設定と比べて差があれば STALE（`--stale` で再生成）。**見た目に影響する設定を追加したら `generation_params()` にも入れる**こと。記録の無い動画は UNKNOWN で、自動では作り直さない。
 - 生成済み（空でない mp4）はスキップ。ダウンロードや記録は `.part` に書いてから置き換える（中断で壊れたファイルを生成済みと誤認しないため）。
-- `review.py` は `videos/review.html` と `review_frames/`（ffmpeg で切り出したコマ）を作る。`--serve` は 127.0.0.1 限定の http.server で、`POST …/api/selection` を `selection.save_selection()` に渡す（ファイル名だけを受け付け、実在を確認する）。
+- `review.py` は `videos/review.html` と `review_frames/`（ffmpeg で切り出したコマ）を作る。generate 中は `review.auto`（each / end / off、既定 each）に従い1本ごとに作り直す。ページ側は `--serve` 時に HEAD の Last-Modified を15秒ごとに見て更新バナーを出す（自動リロードはしない）。`--serve` は 127.0.0.1 限定の http.server で、`POST …/api/selection` を `selection.save_selection()` に渡す（ファイル名だけを受け付け、実在を確認する）。
 - `roughcut.py` は selected.yaml → take1 → 残りのテイクの順に使う動画を選び、ffmpeg の filter_complex で尺どおりに切って concat する。未生成は黒。
 - `notify.py` のトーストは Windows PowerShell 5.1（WinRT）経由。pwsh 7 では動かない。
 - パッケージデータ（`mvgen/templates/*`）は `pyproject.toml` の `package-data` で同梱する。テンプレートを増やしたらインストール後のパスで読めるか確認する。

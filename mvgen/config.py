@@ -54,7 +54,7 @@ DEFAULTS: dict = {
         "template": None,         # None なら同梱のテンプレート（mvgen/templates）
     },
     "review": {
-        "auto": True,             # generate の後に review.html を自動更新する
+        "auto": "each",           # review.html の自動更新: each=1本ごと / end=最後に1回 / off=しない
         "file": "review.html",
         "selected": "selected.yaml",
         "port": 8765,
@@ -74,6 +74,7 @@ DEFAULTS: dict = {
 CLIP_KEYS = {"mode", "ref-images", "prompt", "prompt_file", "seed", "steps",
              "megapixels", "turbo", "takes"}
 MODES = ("i2v", "r2v")
+REVIEW_AUTO = ("each", "end", "off")
 
 
 def deep_merge(base: dict, override: dict) -> dict:
@@ -115,6 +116,14 @@ class Config:
         return cls(copy.deepcopy(DEFAULTS), base)
 
     def _validate(self):
+        # 旧形式（true / false）も受け付ける
+        auto = self.data["review"]["auto"]
+        if auto is True:
+            self.data["review"]["auto"] = "each"
+        elif auto is False or auto is None:
+            self.data["review"]["auto"] = "off"
+        if self.data["review"]["auto"] not in REVIEW_AUTO:
+            raise ValueError(f"review.auto は {REVIEW_AUTO} のいずれか: {auto}")
         if self.gen["mode"] not in MODES:
             raise ValueError(f"generation.mode は {MODES} のいずれか: {self.gen['mode']}")
         for cid, over in self.clips.items():
@@ -148,6 +157,10 @@ class Config:
     @property
     def i2v(self) -> dict:
         return self.data["i2v"]
+
+    @property
+    def review_auto(self) -> str:
+        return self.data["review"]["auto"]
 
     @property
     def notify(self) -> dict:
