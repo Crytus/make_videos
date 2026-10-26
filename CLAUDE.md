@@ -4,10 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-MiniMax H3（ローカル ComfyUI）で MV のクリップを一括生成するツール `make_videos`（`mvgen/` パッケージ。`pip install` で `make_videos` コマンドになる）と、その動作確認に使っているサンプル楽曲1曲分の制作データで構成される。GitHub: https://github.com/Crytus/make_videos （公開リポジトリ）。
+MiniMax H3（ローカル ComfyUI）で MV のクリップを一括生成するツール `make_videos`（`mvgen/` パッケージ。`pip install` で `make_videos` コマンドになる）、歌詞から `movies.yaml` までを作るエージェント用スキル `skills/music-video-production/`、その動作確認に使っているサンプル楽曲1曲分の制作データで構成される。ライセンスは MIT。GitHub: https://github.com/Crytus/make_videos （公開リポジトリ）。
 
 - **サンプル楽曲の曲名を README・コメント・設定の説明・コミットメッセージなどに書かない。** ツールは汎用。例には `clip_01_opening.png` のような汎用名を使う。
 - `videos/`（生成物）と `output/`（サンプルの画像 52MB）は .gitignore で管理外。
+- 公開リポジトリなので、個人環境の絶対パス（ユーザーのホームや作業ドライブ）や特定エージェント専用のツール名をスキル・README・CLAUDE.md に書かない。`h3-prompt-writing` スキルはライセンス不明のため同梱しない（スキル内では探索順で参照する）。
+
+## スキル（skills/music-video-production/）
+
+- `SKILL.md`（手順）、`references/file-templates.md`（成果物の雛形）、`scripts/gen_movies_table.py`（movies.md → movies.yaml）、`scripts/check_mv_assets.py`（成果物の検査。参照 CSV は `--refs-csv` / `<prefix>refs.csv` / 唯一の `*refs.csv` の順に探す）。
+- スクリプトは依存なし（標準ライブラリのみ）。`tests/test_skill_scripts.py` がサンプルデータで「検査が通る」「movies.yaml がバイト単位で再現される」ことを確認する。movies.yaml の書式を変えるときは `gen_movies_table.py` と make_videos（`mvgen/movies.py`）の両方を合わせる。
 
 ## ツール（make_videos / mvgen/）
 
@@ -57,8 +63,9 @@ plan.md（正・source of truth）
 ```
 
 - **`scenes.md` / `scenes.csv` / `hope_refs.csv` / `movies.yaml` は生成物。直接編集しない。** 画像プロンプトは `plan.md`、動画プロンプトは `movies.md` を直して再生成する。
-- `_build_plan.py` / `_gen_assets.py` はリポジトリに存在しない。`check_mv_assets.py` / `gen_movies_table.py` は外部スキル `music-video-production`（`<skills>/media/music-video-production/scripts/`）のもの。スクリプトが無い状態で生成物を更新する必要があるときは、ユーザーに確認したうえで plan.md / movies.md と一字一句一致するよう整合させる。
-- 検収: `python <skills>/media/music-video-production/scripts/check_mv_assets.py . --prefix hope_ --song-seconds 176`。参照 CSV を `uk_refs.csv` の名前で探すため、一時ディレクトリに `hope_refs.csv` を `uk_refs.csv` としてコピーして実行する。
+- `_build_plan.py` / `_gen_assets.py` はリポジトリに存在しない（スキルでは任意のパターンとして紹介）。scenes.* を更新する必要があるときは、ユーザーに確認したうえで plan.md と一字一句一致するよう整合させる。
+- movies.yaml の再生成: `python skills/music-video-production/scripts/gen_movies_table.py .`
+- 検収: `python skills/music-video-production/scripts/check_mv_assets.py . --prefix hope_ --song-seconds 176`
 
 ### 画像プロンプトの規約（plan.md §2, §8）
 
@@ -74,7 +81,7 @@ plan.md（正・source of truth）
 - 全クリップ `non_diegetic_music: N/A`。歌唱・台詞（`<d>`）は書かない。各クリップ 4–15 秒、合計 176 秒を崩さない。
 - `[Shot 2]` 以降は `At 00:03.500, ...` 形式で厳密に増加する時刻を付ける。カメラ指示は自然英文。ブラケット命令は使わない。
 - Ref2VA（6 節形式）に切り替えたクリップは `movies_ref2va.md` に退避し、`movies.md` は I2VA 方言のみに保つ。
-- プロンプト方言の詳細は `h3-prompt-writing` スキル（`base-en.txt` / `ref-en.txt`）。
+- プロンプト方言の詳細は `h3-prompt-writing` スキル（`references/base-en.txt` / `ref-en.txt`）。探索順は skills の SKILL.md を参照。
 
 ### ComfyUI ワークフロー
 

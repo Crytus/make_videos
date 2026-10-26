@@ -1,16 +1,52 @@
 # make_videos — MiniMax H3 で MV のクリップを一括生成
 
-クリップの一覧表（`movies.yaml`）をもとに、ローカルの ComfyUI 上の MiniMax H3 で各クリップの動画を生成するツールです。
+楽曲の歌詞から MV のクリップを作るためのツール一式です。
 
-**作業の流れ:**
-1. 低解像度（0.2MP）でまとめて生成する
-2. `review.html` で見比べて採用テイクを選ぶ
-3. `roughcut` で通しで確認する
-4. 採用したクリップを手動でアップスケールする
+| 構成 | 役割 |
+|---|---|
+| `make_videos`（Python ツール） | クリップの一覧表 `movies.yaml` をもとに、ローカルの ComfyUI 上の MiniMax H3 で各クリップの動画を一括生成する |
+| `skills/music-video-production`（エージェント用スキル） | 歌詞から絵コンテ・画像プロンプト・動画プロンプトを作り、`movies.yaml` まで仕上げる手順とスクリプト |
 
-## インストール
+**全体の流れ:**
 
-Python 3.10 以上が必要です。
+1. **スキル**で、歌詞から `plan.md` → `scenes.csv`（画像プロンプト）→ `movies.md` → `movies.yaml` を作る
+2. `scenes.csv` をもとに、ComfyUI などで各シーンの開始画像を作る
+3. **make_videos** で、低解像度（0.2MP）でまとめて動画を生成する
+4. `review.html` で見比べて採用テイクを選び、`roughcut` で通しで確認する
+5. 採用したクリップを手動でアップスケールし、編集で楽曲と字幕を載せる
+
+## セットアップ
+
+### 1. ComfyUI と MiniMax H3 のモデル
+
+1. ComfyUI を MiniMax H3 対応版に更新します（ノード一覧に `MiniMaxH3ImageToVideo` / `MiniMaxH3ReferenceToVideo` があれば対応しています）。
+2. モデルを Hugging Face の [Comfy-Org/MiniMax-H3](https://huggingface.co/Comfy-Org/MiniMax-H3) から入手し、ComfyUI の `models/` 以下に置きます。
+
+| 種類 | 置き場所 | i2v（既定） | r2v |
+|---|---|---|---|
+| 拡散モデル | `models/diffusion_models/` | `minimax_h3_fl2va_pruned_int8_convrot` | `minimax_h3_ref2va_pruned_int8_convrot` |
+| turbo LoRA | `models/loras/` | `minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16` | `minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16` |
+| テキストエンコーダー | `models/text_encoders/` | `qwen3vl_32b_minimax_h3_nvfp4_awq` | 同左 |
+| 動画 VAE | `models/vae/` | `minimax_h3_video_vae_int8_convrot` | `minimax_h3_video_vae_fp16` |
+| 音声 VAE | `models/vae/` | `minimax_h3_audio_vae_fp32` | 同左 |
+
+（拡張子はいずれも `.safetensors`）
+
+3. ComfyUI を起動します（既定 `http://127.0.0.1:8188`）。ブラウザでテンプレート「MiniMax H3: Image to Video」が動けば準備完了です。
+
+別の量子化版など、ファイル名が違うモデルを使う場合は `config.yaml` の `i2v:` で指定します。r2v は `r2v.template` に自分のワークフローを指定します。
+
+### 2. ffmpeg
+
+レビューページのコマ画像とラフ版で使います。`ffmpeg` と `ffprobe` に PATH を通してください。
+
+```
+winget install ffmpeg          # Windows
+brew install ffmpeg            # macOS
+sudo apt install ffmpeg        # Ubuntu など
+```
+
+### 3. make_videos（Python 3.10 以上）
 
 ```
 pip install git+https://github.com/Crytus/make_videos.git
@@ -26,15 +62,44 @@ pip install -e .
 
 インストールすると `make_videos` コマンドが使えるようになります。インストールせずに、リポジトリ直下で `python make_videos.py …` としても同じように動きます。
 
-### ほかに必要なもの
+### 4. スキル（歌詞から movies.yaml を作る場合）
 
-- **ComfyUI**（既定 `http://127.0.0.1:8188`）と MiniMax H3 のノード・モデル
-  - i2v: `minimax_h3_fl2va_pruned_int8_convrot` / `minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16`（LoRA）/ `minimax_h3_video_vae_int8_convrot`
-  - r2v: `minimax_h3_ref2va_pruned_int8_convrot` / `minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16`（LoRA）/ `minimax_h3_video_vae_fp16`
-  - 共通: `qwen3vl_32b_minimax_h3_nvfp4_awq` / `minimax_h3_audio_vae_fp32`
-- **ffmpeg / ffprobe**（PATH に通す。レビューページのコマ画像とラフ版で使用）
+`skills/music-video-production` フォルダを、使っている AI エージェントのスキル置き場にコピーします。
 
-## はじめかた
+**Claude Code** の場合:
+
+| 使う範囲 | 置き場所 |
+|---|---|
+| すべてのプロジェクト | `~/.claude/skills/music-video-production/` |
+| 特定のプロジェクトだけ | `<プロジェクト>/.claude/skills/music-video-production/` |
+
+```
+# Windows（PowerShell）
+New-Item -ItemType Directory -Force "$HOME\.claude\skills" | Out-Null
+Copy-Item -Recurse skills\music-video-production "$HOME\.claude\skills\"
+
+# macOS / Linux
+mkdir -p ~/.claude/skills && cp -r skills/music-video-production ~/.claude/skills/
+```
+
+**その他のエージェント**（`SKILL.md` 形式のスキルに対応しているもの）は、そのエージェントのスキル置き場（例: `~/.agents/skills/`）にコピーします。
+
+**推奨:** MiniMax H3 のプロンプト形式を定義した別スキル `h3-prompt-writing` も、同じスキル置き場に入れてください。無い場合は、`SKILL.md` に書かれた形式の要約で代用します。
+
+入れたら、エージェントに次のように頼みます。
+
+```
+music-video-production スキルで、lyrics.txt の歌詞から MV の計画と movies.yaml を作って
+```
+
+スキルに同梱のスクリプトは単体でも使えます。
+
+```
+python skills/music-video-production/scripts/gen_movies_table.py <プロジェクト>              # movies.md → movies.yaml
+python skills/music-video-production/scripts/check_mv_assets.py <プロジェクト> --prefix ab_ --song-seconds 176   # 成果物の検査
+```
+
+### 5. プロジェクトの作成
 
 作業用のディレクトリを作り、設定ファイルの雛形を作ります。
 
@@ -44,12 +109,21 @@ cd my_mv
 make_videos init
 ```
 
-次のように用意します（名前は `config.yaml` で変えられます）。
+`config.yaml` を開き、少なくとも次を確認します。
+
+| 項目 | 内容 |
+|---|---|
+| `server` | ComfyUI の URL（別の PC や別ポートで動かしている場合に変更） |
+| `movies` / `image_dir` / `out_dir` | 一覧表・開始画像・生成結果の場所 |
+| `generation.megapixels` | 解像度（既定 0.2 = 608×352。確認用） |
+| `notify.webhook` | 完了を Discord / Slack に送る場合の Webhook URL |
+
+ディレクトリは次のようになります。
 
 ```
 my_mv/
 ├─ config.yaml     # make_videos init で作成
-├─ movies.yaml     # クリップの一覧表（下記）
+├─ movies.yaml     # クリップの一覧表（スキルで作成、または手で書く）
 ├─ images/         # 各クリップの開始画像
 └─ videos/         # 生成結果（自動で作成）
 ```
@@ -250,3 +324,7 @@ clips:
 ```
 python -m unittest -v
 ```
+
+## ライセンス
+
+MIT（[LICENSE](LICENSE)）。`h3-prompt-writing` スキルは同梱していません。

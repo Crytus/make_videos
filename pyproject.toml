@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "movies.yaml のクリップ一覧から、ローカルの ComfyUI（MiniMax H3）で動画を一括生成するツール"
 readme = "README.md"
 requires-python = ">=3.10"
+license = {text = "MIT"}
 dependencies = ["PyYAML>=6"]
 
 [project.scripts]
