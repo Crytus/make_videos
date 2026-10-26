@@ -10,10 +10,10 @@
 **全体の流れ:**
 
 1. **スキル**で、歌詞から `plan.md` → `scenes.csv`（画像プロンプト）→ `movies.md` → `movies.yaml` を作る
-2. `scenes.csv` をもとに、ComfyUI などで各シーンの開始画像を作る
+2. `scenes.csv` をもとに、generate_image（別リポジトリにあり）で各シーンの開始画像を作る、hope_refs.csv（参照画像用）も同様につくる
 3. **make_videos** で、低解像度（0.2MP）でまとめて動画を生成する
 4. `review.html` で見比べて採用テイクを選び、`roughcut` で通しで確認する
-5. 採用したクリップを手動でアップスケールし、編集で楽曲と字幕を載せる
+5. 採用したクリップを手動でアップスケールし、動画編集ソフトで楽曲と字幕（必要なら）を載せる
 
 ## セットアップ
 
@@ -330,4 +330,5 @@ python -m unittest -v
 
 ## ライセンス
 
-MIT（[LICENSE](LICENSE)）。`h3-prompt-writing` スキルは同梱していません。
+MIT（[LICENSE](LICENSE)）
+なお`h3-prompt-writing`スキルは同梱していません
