@@ -287,7 +287,7 @@ def cmd_roughcut(args, cfg: Config, movies: list[dict]) -> int:
         print(e, file=sys.stderr)
         return 2
     print(format_cues(cues))
-    print(f"\nラフ版を作成しました: {output}（{sum(c.clip.duration for c in clips):g}秒）")
+    print(f"\nラフ版を作成しました: {output}（{sum(c.duration for c in clips):g}秒）")
     return 0
 
 

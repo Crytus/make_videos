@@ -1,16 +1,18 @@
 """レビューページ・選択の保存・ラフ版・通知のテスト。"""
 
+import io
 import json
 import tempfile
 import threading
 import unittest
 import urllib.error
 import urllib.request
+from contextlib import redirect_stdout
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest import mock
 
-from mvgen import media, notify
+from mvgen import cli, media, notify
 from mvgen.plan import resolve_clip
 from mvgen.review import build_review, make_handler
 from mvgen.roughcut import build_filter, build_roughcut, plan_cues
@@ -174,6 +176,16 @@ class TestRoughcut(ProjectTestCase):
         info = media.probe(output)
         self.assertAlmostEqual(info["duration"], 7.0, delta=0.15)  # 音源が長くても映像の尺で切る
         self.assertTrue(info["has_audio"])
+
+
+    @unittest.skipUnless(HAS_FFMPEG, "ffmpeg が必要")
+    def test_cli_roughcut(self):
+        make_video(self.cfg.out_dir / "s_01_a.mp4", 2)
+        out = io.StringIO()
+        with redirect_stdout(out):
+            code = cli.main(["roughcut", "--config", str(self.root / "config_video.yaml")])
+        self.assertEqual(code, 0)
+        self.assertIn("（7秒）", out.getvalue())  # 合計尺の表示まで落ちずに終わる
 
 
 class TestNotify(unittest.TestCase):
