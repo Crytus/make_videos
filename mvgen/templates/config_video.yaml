@@ -59,7 +59,7 @@ videomaker:
   video:                    # シナリオの video 節にそのまま写す
     width: 1920
     height: 1080
-    fps: 24
+    fps: 30
     bgm_volume: 1.0
     bgm_loop: false
     # bgm: song.wav         # 省略時は roughcut.audio。実在すれば YAML 基準の相対パスに直す

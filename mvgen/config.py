@@ -72,7 +72,7 @@ DEFAULTS: dict = {
         "video": {                # シナリオの video 節にそのまま写す（bgm 省略時は roughcut.audio）
             "width": 1920,
             "height": 1080,
-            "fps": 24,
+            "fps": 30,
             "bgm_volume": 1.0,
             "bgm_loop": False,
         },

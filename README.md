@@ -290,7 +290,7 @@ make_videos videomaker --output mv.yaml   # 出力先を変える
 video:
   width: 1920
   height: 1080
-  fps: 24
+  fps: 30
   bgm_volume: 1.0
   bgm_loop: false
   bgm: ../song.wav
@@ -317,7 +317,6 @@ scenes:
 videomaker:
   subtitle: lyrics
   video:
-    fps: 30
     subtitle:
       font: assets/fonts/msgothic.ttc
       position: bottom

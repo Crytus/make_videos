@@ -57,7 +57,7 @@ class TestBuildVideomaker(VideomakerTestCase):
         path, _ = build_videomaker(self.cfg, self.clips)
         self.assertEqual(path, out / "videomaker.yaml")
         data = self.load()
-        self.assertEqual(data["video"], {"width": 1920, "height": 1080, "fps": 24,
+        self.assertEqual(data["video"], {"width": 1920, "height": 1080, "fps": 30,
                                          "bgm_volume": 1.0, "bgm_loop": False})
         self.assertEqual(data["scenes"], [
             {"id": "01", "video": "s_01_a_t2.mp4", "duration": 2, "subtitle": "歌詞一"},  # 採用テイク
@@ -90,7 +90,7 @@ class TestVideoSection(VideomakerTestCase):
     config = {
         "roughcut": {"audio": "song.wav"},
         "videomaker": {
-            "video": {"fps": 30, "voice": "narrator_female",
+            "video": {"fps": 25, "voice": "narrator_female",
                       "subtitle": {"font": "fonts/a.ttc", "position": "bottom"}},
             "options": {"no_voice": True},
         },
@@ -103,7 +103,7 @@ class TestVideoSection(VideomakerTestCase):
         build_videomaker(self.cfg, self.clips)
         data = self.load()
         video = data["video"]
-        self.assertEqual((video["width"], video["fps"], video["voice"]), (1920, 30, "narrator_female"))
+        self.assertEqual((video["width"], video["fps"], video["voice"]), (1920, 25, "narrator_female"))
         self.assertEqual(video["bgm"], "../song.wav")                # roughcut.audio を流用
         self.assertEqual(video["subtitle"]["font"], "../fonts/a.ttc")  # 実在すれば YAML 基準に直す
         self.assertEqual(data["options"], {"no_voice": True})
