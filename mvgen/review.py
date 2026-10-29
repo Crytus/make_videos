@@ -130,7 +130,7 @@ async function save(){
   try {
     const r = await fetch('api/selection', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(sel)});
     if (!r.ok) throw new Error(await r.text());
-    msg('selected.yaml に保存しました（' + new Date().toLocaleTimeString() + '）');
+    msg((await r.text()) + ' に保存しました（' + new Date().toLocaleTimeString() + '）');
   } catch (e) {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([toYaml(sel)], {type:'text/yaml'}));
@@ -240,8 +240,9 @@ def serve_root(cfg: Config) -> Path:
     return Path(os.path.commonpath([cfg.out_dir.resolve(), cfg.image_dir.resolve()]))
 
 
-def make_handler(cfg: Config, clip_ids: list[str]):
-    """review.html の配信と、選択の保存（POST …/api/selection）を受け持つハンドラ。"""
+def make_handler(cfg: Config, clip_ids: list[str], on_save=None):
+    """review.html の配信と、選択の保存（POST …/api/selection）を受け持つハンドラ。
+    on_save は保存後に呼ぶ関数（videomaker のシナリオの書き出しなど）。書き出したパスを返す。"""
     root = serve_root(cfg)
 
     class Handler(SimpleHTTPRequestHandler):
@@ -264,6 +265,13 @@ def make_handler(cfg: Config, clip_ids: list[str]):
                         raise ValueError(f"動画が見つかりません: {name}")
                     selection[cid] = name
                 save_selection(cfg.selected_path, selection, clip_ids)
+                saved = [cfg.selected_path.name]
+                if on_save is not None:
+                    # 付随するファイルの失敗で選択の保存自体は失敗扱いにしない
+                    try:
+                        saved.append(Path(on_save()).name)
+                    except Exception as e:
+                        print(f"保存後の書き出しに失敗しました: {e}", file=sys.stderr)
             except (ValueError, json.JSONDecodeError) as e:
                 self.send_response(400)
                 self.send_header("Content-Type", "text/plain; charset=utf-8")
@@ -273,7 +281,7 @@ def make_handler(cfg: Config, clip_ids: list[str]):
             self.send_response(200)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.end_headers()
-            self.wfile.write(b"ok")
+            self.wfile.write(" と ".join(saved).encode("utf-8"))
 
         def log_message(self, fmt, *args):  # アクセスログは出さない
             pass
@@ -281,9 +289,10 @@ def make_handler(cfg: Config, clip_ids: list[str]):
     return partial(Handler, directory=str(root))
 
 
-def serve(cfg: Config, clip_ids: list[str], port: int, open_browser: bool = True) -> None:
+def serve(cfg: Config, clip_ids: list[str], port: int, open_browser: bool = True,
+          on_save=None) -> None:
     """ローカルサーバーを起動し、ブラウザから選択を selected.yaml に直接保存できるようにする。"""
-    httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(cfg, clip_ids))
+    httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(cfg, clip_ids, on_save))
     rel = _rel(cfg.review_path.resolve(), serve_root(cfg))
     url = f"http://127.0.0.1:{httpd.server_address[1]}/{rel}"
     print(f"レビューページ: {url}\n（Ctrl+C で終了）")

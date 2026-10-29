@@ -51,6 +51,23 @@ roughcut:
   output: roughcut.mp4
   audio: null               # 楽曲の音源（例: song.wav）。null なら生成された音声をつなぐ
 
+# videomaker（https://github.com/Crytus/videomaker）用のシナリオ（make_videos videomaker）
+videomaker:
+  output: videomaker.yaml   # out_dir 基準
+  auto: true                # review --serve で選択を保存したときに作り直す
+  subtitle: lyrics          # lyrics=movies.yaml の lyrics を字幕に（括弧書きの注記は空）/ none=字幕なし
+  video:                    # シナリオの video 節にそのまま写す
+    width: 1920
+    height: 1080
+    fps: 24
+    bgm_volume: 1.0
+    bgm_loop: false
+    # bgm: song.wav         # 省略時は roughcut.audio。実在すれば YAML 基準の相対パスに直す
+    # subtitle:
+    #   font: assets/fonts/msgothic.ttc
+    #   position: bottom
+  options: {}               # シナリオの options 節にそのまま写す（例: {no_voice: true}）
+
 # 生成完了の通知
 notify:
   toast: true               # Windows のトースト通知

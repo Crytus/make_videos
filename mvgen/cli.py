@@ -5,6 +5,7 @@
   make_videos status                  生成状況を一覧表示
   make_videos review [--serve]        確認用の review.html を作る
   make_videos roughcut                全クリップをつないだラフ版を作る
+  make_videos videomaker              videomaker でつなぐためのシナリオ YAML を書き出す
 
 設定ファイルは既定でカレントディレクトリの config_video.yaml（--config で変更）。
 """
@@ -29,9 +30,10 @@ from .progress import Eta, fmt_duration, fmt_eta, rate_key
 from .review import build_review, serve
 from .roughcut import build_roughcut, format_cues
 from .selection import load_selection
+from .videomaker import build_videomaker
 from .workflow import build_i2v_workflow, build_r2v_workflow
 
-COMMANDS = ("init", "generate", "status", "review", "roughcut")
+COMMANDS = ("init", "generate", "status", "review", "roughcut", "videomaker")
 CONFIG_NAME = "config_video.yaml"
 
 
@@ -73,6 +75,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     if command == "roughcut":
         p.add_argument("--audio", type=Path, help="重ねる音源（歌）。省略時は config の roughcut.audio")
         p.add_argument("--output", type=Path, help="出力ファイル")
+    if command == "videomaker":
+        p.add_argument("--output", type=Path, help="出力ファイル（既定: <out_dir>/videomaker.yaml）")
     args = p.parse_args(argv)
     args.command = command
     return args
@@ -274,8 +278,12 @@ def cmd_review(args, cfg: Config, movies: list[dict]) -> int:
     path = build_review(cfg, clips)
     print(f"レビューページを作成しました: {path}")
     if args.serve:
+        on_save = None
+        if cfg.data["videomaker"]["auto"]:
+            def on_save():
+                return build_videomaker(cfg, clips)[0]
         serve(cfg, [c.id for c in clips], args.port or cfg.data["review"]["port"],
-              open_browser=not args.no_open)
+              open_browser=not args.no_open, on_save=on_save)
     return 0
 
 
@@ -288,6 +296,17 @@ def cmd_roughcut(args, cfg: Config, movies: list[dict]) -> int:
         return 2
     print(format_cues(cues))
     print(f"\nラフ版を作成しました: {output}（{sum(c.duration for c in clips):g}秒）")
+    return 0
+
+
+def cmd_videomaker(args, cfg: Config, movies: list[dict]) -> int:
+    clips = _all_clips(cfg, movies)
+    output, cues = build_videomaker(cfg, clips, output=args.output)
+    print(format_cues(cues))
+    print(f"\nvideomaker のシナリオを書き出しました: {output}（{sum(c.duration for c in clips):g}秒）")
+    missing = [c.clip.id for c in cues if c.source is None]
+    if missing:
+        print(f"未生成のため開始画像で代用: {' '.join(missing)}", file=sys.stderr)
     return 0
 
 
@@ -324,7 +343,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"設定エラー: {e}", file=sys.stderr)
         return 2
     handler = {"generate": cmd_generate, "status": cmd_status,
-               "review": cmd_review, "roughcut": cmd_roughcut}[args.command]
+               "review": cmd_review, "roughcut": cmd_roughcut,
+               "videomaker": cmd_videomaker}[args.command]
     try:
         return handler(args, cfg, movies)
     except ValueError as e:

@@ -3,8 +3,10 @@
 パスの基準:
   movies / image_dir / out_dir / r2v.template / roughcut.audio / clips.*.prompt_file
       → config_video.yaml のあるディレクトリ基準
-  review.file / review.selected / roughcut.output
+  review.file / review.selected / roughcut.output / videomaker.output
       → out_dir 基準
+  videomaker.video.bgm / videomaker.video.subtitle.font
+      → config_video.yaml 基準で実在すれば、書き出す YAML からの相対パスに直す
 """
 
 from __future__ import annotations
@@ -63,6 +65,19 @@ DEFAULTS: dict = {
         "output": "roughcut.mp4",
         "audio": None,            # 楽曲の音源。None なら生成された音声をつなぐ
     },
+    "videomaker": {
+        "output": "videomaker.yaml",  # videomaker のシナリオ（out_dir 基準）
+        "auto": True,             # review --serve で選択を保存したときに作り直す
+        "subtitle": "lyrics",     # lyrics=movies.yaml の lyrics を字幕に / none=字幕なし
+        "video": {                # シナリオの video 節にそのまま写す（bgm 省略時は roughcut.audio）
+            "width": 1920,
+            "height": 1080,
+            "fps": 24,
+            "bgm_volume": 1.0,
+            "bgm_loop": False,
+        },
+        "options": {},            # シナリオの options 節にそのまま写す
+    },
     "notify": {
         "toast": True,            # Windows のトースト通知
         "webhook": None,          # Discord / Slack 互換の Webhook URL
@@ -75,6 +90,7 @@ CLIP_KEYS = {"mode", "ref-images", "prompt", "prompt_file", "seed", "steps",
              "megapixels", "turbo", "takes"}
 MODES = ("i2v", "r2v")
 REVIEW_AUTO = ("each", "end", "off")
+VIDEOMAKER_SUBTITLE = ("lyrics", "none")
 
 
 def deep_merge(base: dict, override: dict) -> dict:
@@ -124,6 +140,9 @@ class Config:
             self.data["review"]["auto"] = "off"
         if self.data["review"]["auto"] not in REVIEW_AUTO:
             raise ValueError(f"review.auto は {REVIEW_AUTO} のいずれか: {auto}")
+        if self.data["videomaker"]["subtitle"] not in VIDEOMAKER_SUBTITLE:
+            raise ValueError(f"videomaker.subtitle は {VIDEOMAKER_SUBTITLE} のいずれか: "
+                             f"{self.data['videomaker']['subtitle']}")
         if self.gen["mode"] not in MODES:
             raise ValueError(f"generation.mode は {MODES} のいずれか: {self.gen['mode']}")
         for cid, over in self.clips.items():
@@ -201,3 +220,7 @@ class Config:
     @property
     def roughcut_audio(self) -> Path | None:
         return self.path(self.data["roughcut"]["audio"])
+
+    @property
+    def videomaker_output(self) -> Path:
+        return self.path(self.data["videomaker"]["output"], self.out_dir)

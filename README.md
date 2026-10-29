@@ -13,7 +13,7 @@
 2. `scenes.csv` をもとに、generate_image（別リポジトリにあり）で各シーンの開始画像を作る、hope_refs.csv（参照画像用）も同様につくる
 3. **make_videos** で、低解像度（0.2MP）でまとめて動画を生成する
 4. `review.html` で見比べて採用テイクを選び、`roughcut` で通しで確認する
-5. 採用したクリップを手動でアップスケールし、動画編集ソフトで楽曲と字幕（必要なら）を載せる
+5. 採用したクリップを手動でアップスケールし、動画編集ソフトで楽曲と字幕（必要なら）を載せる（[videomaker](https://github.com/Crytus/videomaker) を使う場合は、`make_videos videomaker` でシナリオ YAML を書き出せる）
 
 ## セットアップ
 
@@ -170,6 +170,7 @@ make_videos                  # 動画を生成（generate は省略可）
 make_videos status           # 生成状況の一覧
 make_videos review --serve   # 確認ページを開き、採用テイクを選ぶ
 make_videos roughcut         # 採用テイクをつないだラフ版を作る
+make_videos videomaker       # 採用テイクをつなぐ videomaker のシナリオ YAML を書き出す
 ```
 
 各コマンドのオプションは `make_videos <コマンド> --help` で確認できます。
@@ -250,7 +251,7 @@ make_videos status
 make_videos review --serve
 ```
 
-ブラウザで `review.html` が開きます。クリップごとに、開始画像・各テイクの動画・最初/中間/最後のコマ・歌詞・seed・状態が並びます。採用するテイクのラジオボタンを選び、**「選択を保存」** を押すと `videos/selected.yaml` に保存されます。「未選択のみ表示」で、まだ選んでいないクリップだけに絞り込めます。終了は Ctrl+C です。
+ブラウザで `review.html` が開きます。クリップごとに、開始画像・各テイクの動画・最初/中間/最後のコマ・歌詞・seed・状態が並びます。採用するテイクのラジオボタンを選び、**「選択を保存」** を押すと `videos/selected.yaml` に保存されます。同時に videomaker のシナリオ `videos/videomaker.yaml` も作り直します（[5. videomaker](#5-videomaker-用のシナリオvideomaker) 参照。`videomaker.auto: false` で止められます）。「未選択のみ表示」で、まだ選んでいないクリップだけに絞り込めます。終了は Ctrl+C です。
 
 `--serve` で開いている間に生成が進んで `review.html` が更新されると、画面上部に「新しいクリップがあります」と表示されます。未保存の選択が消えないよう自動では再読み込みしないので、必要なら「選択を保存」してから「再読み込み」を押してください。
 
@@ -275,6 +276,55 @@ make_videos roughcut --audio song.wav   # 楽曲を重ねる
 - 各クリップに使うテイク: `selected.yaml` の採用テイク → take1 → 残っているテイク
 - 未生成のクリップは黒画面で埋めます
 - 音声は既定では生成された音声をつなぎます。`--audio`（または `config_video.yaml` の `roughcut.audio`）で楽曲の音源に差し替えられます
+
+## 5. videomaker 用のシナリオ（videomaker）
+
+```
+make_videos videomaker
+make_videos videomaker --output mv.yaml   # 出力先を変える
+```
+
+[videomaker](https://github.com/Crytus/videomaker) で採用テイクをつなぎ、楽曲・歌詞の字幕を載せるためのシナリオ `videos/videomaker.yaml` を書き出します。`videomaker render videos/videomaker.yaml` でそのまま書き出せます。
+
+```yaml
+video:
+  width: 1920
+  height: 1080
+  fps: 24
+  bgm_volume: 1.0
+  bgm_loop: false
+  bgm: ../song.wav
+scenes:
+  - id: '01'
+    video: clip_01_opening.mp4
+    duration: 8
+    subtitle: ''
+  - id: '04'
+    video: clip_04_hands_t2.mp4
+    duration: 6
+    subtitle: 胸に秘めた光
+```
+
+- 各シーンに使うテイクは `roughcut` と同じです（`selected.yaml` の採用テイク → take1 → 残っているテイク）。未生成のクリップは開始画像（静止画）で埋めます
+- 各シーンに `movies.yaml` の `duration` を書きます。H3 で少し長く生成された分は videomaker が尺どおりに切ります
+- 字幕は `movies.yaml` の `lyrics` です。「（イントロ／歌唱なし）」のように全体が括弧書きのものは空にします（`videomaker.subtitle: none` で字幕なし）
+- パスは書き出した YAML からの相対パスです（ドライブが違う場合は絶対パス）
+- `video:` / `options:` は `config_video.yaml` の `videomaker.video` / `videomaker.options` をそのまま写します。`bgm` を省略すると `roughcut.audio` を使います。`bgm` と `subtitle.font` は、`config_video.yaml` 基準で実在すれば YAML 基準の相対パスに直し、実在しなければそのまま書きます（videomaker 側の `assets/` 検索に任せる）
+- 書き出すたびに上書きするので、共通の設定は YAML ではなく `config_video.yaml` に書いてください
+
+```yaml
+# config_video.yaml
+videomaker:
+  subtitle: lyrics
+  video:
+    fps: 30
+    subtitle:
+      font: assets/fonts/msgothic.ttc
+      position: bottom
+      style: {fill: "#FFFFFF", stroke: "#000000", padding: 32}
+  options:
+    no_voice: true
+```
 
 ## 設定ファイル（config_video.yaml）
 
@@ -314,7 +364,7 @@ clips:
 
 ## 動画の長さ
 
-`duration`（秒）を 24fps のフレーム数に変換し、H3 の制約（17k+5 フレーム）に合わせて切り上げます。8秒 = 192フレーム、10秒 = 243フレーム（約10.1秒）です。端数は `roughcut` や編集で切ってください。
+`duration`（秒）を 24fps のフレーム数に変換し、H3 の制約（17k+5 フレーム）に合わせて切り上げます。8秒 = 192フレーム、10秒 = 243フレーム（約10.1秒）です。端数は `roughcut`・`videomaker` や編集で切ってください。
 
 ## サンプル
 

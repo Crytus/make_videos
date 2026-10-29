@@ -26,6 +26,7 @@ make_videos [generate] --dry-run                 # 生成対象の確認（API �
 make_videos status                               # 生成状況（○最新 △設定変更あり ?記録なし -未生成）
 make_videos review --serve                       # review.html を開き、採用テイクを videos/selected.yaml に保存
 make_videos roughcut                             # 採用テイクを尺どおりに切ってつないだ videos/roughcut.mp4
+make_videos videomaker                           # 採用テイクをつなぐ videomaker のシナリオ videos/videomaker.yaml
 python -m unittest -v                            # 全テスト（ComfyUI 不要。リポジトリ直下で実行）
 python -m unittest tests.test_generate.TestGenerate.test_takes   # 1件だけ
 ```
@@ -39,6 +40,7 @@ python -m unittest tests.test_generate.TestGenerate.test_takes   # 1件だけ
 - 生成済み（空でない mp4）はスキップ。ダウンロードや記録は `.part` に書いてから置き換える（中断で壊れたファイルを生成済みと誤認しないため）。
 - `review.py` は `videos/review.html` と `review_frames/`（ffmpeg で切り出したコマ）を作る。generate 中は `review.auto`（each / end / off、既定 each）に従い1本ごとに作り直す。ページ側は `--serve` 時に HEAD の Last-Modified を15秒ごとに見て更新バナーを出す（自動リロードはしない）。`--serve` は 127.0.0.1 限定の http.server で、`POST …/api/selection` を `selection.save_selection()` に渡す（ファイル名だけを受け付け、実在を確認する）。
 - `roughcut.py` は selected.yaml → take1 → 残りのテイクの順に使う動画を選び、ffmpeg の filter_complex で尺どおりに切って concat する。未生成は黒。
+- `videomaker.py` は roughcut と同じ `plan_cues()` で動画を選び、videomaker（https://github.com/Crytus/videomaker）のシナリオを書き出す。各シーンに movies.yaml の尺を `duration` で入れて videomaker 側で切らせる。未生成は開始画像。`review --serve` の保存時にも `videomaker.auto` に従って作り直す（`make_handler` の `on_save`）。
 - `notify.py` のトーストは Windows PowerShell 5.1（WinRT）経由。pwsh 7 では動かない。
 - パッケージデータ（`mvgen/templates/*`）は `pyproject.toml` の `package-data` で同梱する。テンプレートを増やしたらインストール後のパスで読めるか確認する。
 
